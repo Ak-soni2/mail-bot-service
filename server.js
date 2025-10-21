@@ -35,6 +35,7 @@ const upload = multer({
 
 const SENDER_EMAIL = process.env.SENDER_EMAIL;
 const SENDER_PASS = process.env.SENDER_PASS;
+const SENDER_NAME = process.env.SENDER_NAME || "";
 
 if (!SENDER_EMAIL || !SENDER_PASS) {
   console.warn("⚠️  SENDER_EMAIL or SENDER_PASS not set in .env");
@@ -67,7 +68,7 @@ app.post("/send", upload.single("attachment"), async (req, res) => {
 
   for (let recipient of recipientList) {
     const mailOptions = {
-      from: SENDER_EMAIL,
+      from: `${SENDER_NAME} <${SENDER_EMAIL}>`,
       to: recipient,
       subject: subject || "(No Subject)",
       text: message || "(No Message)",
