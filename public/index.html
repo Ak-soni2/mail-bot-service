@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mailing Bot</title>
+  <style>
+    /* Dark mode colors */
+    :root {
+      --bg-color: #121212;
+      --container-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --input-bg: #2a2a2a;
+      --input-border: #444;
+      --button-bg: #0d6efd;
+      --button-hover-bg: #0b5ed7;
+      --success-bg: #198754;
+      --success-text: #d1e7dd;
+      --error-bg: #dc3545;
+      --error-text: #f8d7da;
+      --loading-bg: #ffc107;
+      --loading-text: #664d03;
+      --dialog-shadow: rgba(0, 0, 0, 0.8);
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-color);
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding-top: 50px;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 90%;
+      background: var(--container-bg);
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px var(--dialog-shadow);
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--text-color);
+      margin-bottom: 30px;
+      font-weight: 700;
+      font-size: 2rem;
+      user-select: none;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea,
+    input[type="file"] {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 24px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 6px;
+      font-size: 15px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      transition: border-color 0.3s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    textarea:focus,
+    input[type="file"]:focus {
+      border-color: var(--button-bg);
+      outline: none;
+    }
+
+    textarea {
+      height: 120px;
+      resize: vertical;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background-color: var(--button-bg);
+      color: white;
+      border: none;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s ease, transform 0.15s ease;
+      user-select: none;
+    }
+
+    button:hover {
+      background-color: var(--button-hover-bg);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 18px;
+      font-weight: 600;
+      font-size: 16px;
+      user-select: none;
+      min-height: 24px;
+    }
+
+    dialog {
+      border: none;
+      border-radius: 12px;
+      padding: 30px 40px 40px 40px;
+      box-shadow: 0 8px 32px var(--dialog-shadow);
+      font-size: 16px;
+      text-align: center;
+      min-width: 320px;
+      background: var(--container-bg);
+      color: var(--text-color);
+      position: relative;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+    }
+
+    #loadingDialog {
+      background: var(--loading-bg);
+      color: var(--loading-text);
+      font-weight: 700;
+    }
+
+    #successDialog {
+      background: var(--success-bg);
+      color: var(--success-text);
+      font-weight: 700;
+    }
+
+    #errorDialog {
+      background: var(--error-bg);
+      color: var(--error-text);
+      font-weight: 700;
+    }
+
+    /* Close button for dialogs */
+    dialog .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      font-size: 22px;
+      color: inherit;
+      cursor: pointer;
+      font-weight: 700;
+      user-select: none;
+      transition: color 0.2s ease;
+    }
+
+    dialog .close-btn:hover {
+      color: #fff;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📧 Mailing Bot</h2>
+    <form id="mailForm" enctype="multipart/form-data" autocomplete="off">
+      <label>Recipients (comma separated):</label>
+      <textarea name="recipients" placeholder="example1@gmail.com, example2@gmail.com" required></textarea>
+
+      <label>Subject:</label>
+      <input type="text" name="subject" placeholder="Enter email subject" required />
+
+      <label>Message:</label>
+      <textarea name="message" placeholder="Write your message here..." required></textarea>
+
+      <label>Attachment (optional):</label>
+      <input type="file" name="attachment" />
+
+      <button type="submit">📤 Send Emails</button>
+
+      <dialog id="loadingDialog">Sending emails, please wait...</dialog>
+
+      <dialog id="successDialog">
+        <button class="close-btn" aria-label="Close">&times;</button>
+        Emails sent successfully!
+      </dialog>
+
+      <dialog id="errorDialog">
+        <button class="close-btn" aria-label="Close">&times;</button>
+        Error sending emails.
+      </dialog>
+    </form>
+
+    <div class="status" id="statusMsg"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("mailForm");
+    const status = document.getElementById("statusMsg");
+    const loadingDialog = document.getElementById("loadingDialog");
+    const successDialog = document.getElementById("successDialog");
+    const errorDialog = document.getElementById("errorDialog");
+    const successCloseBtn = successDialog.querySelector(".close-btn");
+    const errorCloseBtn = errorDialog.querySelector(".close-btn");
+
+    // Close buttons for dialogs
+    successCloseBtn.addEventListener("click", () => successDialog.close());
+    errorCloseBtn.addEventListener("click", () => errorDialog.close());
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      // Show loading dialog
+      loadingDialog.showModal();
+      status.textContent = "Sending...";
+
+      const formData = new FormData(form);
+      try {
+        const response = await fetch("http://localhost:3000/send", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        // Close loading dialog
+        loadingDialog.close();
+
+        if (result.success) {
+          // Show success dialog
+          successDialog.showModal();
+          status.textContent = "✅ Emails sent successfully!";
+          form.reset();
+          
+          // Auto close success dialog after 2 seconds if not closed by user
+          setTimeout(() => {
+            if (successDialog.open) successDialog.close();
+          }, 2000);
+        } else {
+          // Show error dialog with message
+          errorDialog.textContent = "Error: " + result.error;
+          errorDialog.showModal();
+          status.textContent = "❌ Error: " + result.error;
+
+          // Auto close error dialog after 3 seconds if not closed by user
+          setTimeout(() => {
+            if (errorDialog.open) errorDialog.close();
+          }, 3000);
+        }
+      } catch (error) {
+        console.error(error);
+        
+        // Close loading dialog
+        loadingDialog.close();
+
+        // Show error dialog
+        errorDialog.textContent = "Something went wrong while sending.";
+        errorDialog.showModal();
+        status.textContent = "❌ Something went wrong while sending.";
+
+        // Auto close error dialog after 3 seconds if not closed by user
+        setTimeout(() => {
+          if (errorDialog.open) errorDialog.close();
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>
